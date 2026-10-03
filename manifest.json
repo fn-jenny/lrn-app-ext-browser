@@ -3,7 +3,12 @@
   "name": "LRN App Snippet Saver",
   "version": "1.0.0",
   "description": "Save selected text to Laravel",
-  "permissions": ["storage", "tabs", "activeTab"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "contextMenus"
+  ],
   "host_permissions": [
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
@@ -18,5 +23,8 @@
       "js": ["content.js"],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 }
