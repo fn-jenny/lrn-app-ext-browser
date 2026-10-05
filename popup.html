@@ -5,29 +5,225 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LRN Snippet</title>
     <style>
-      body { font-family: Arial, sans-serif; width: 350px; padding: 16px; }
-      input, textarea, button { width: 100%; box-sizing: border-box; margin-top: 6px; }
-      textarea { min-height: 100px; }
+      :root {
+        --bg: #f4f2ee;
+        --panel: #ffffff;
+        --ink: #1b2330;
+        --muted: #586271;
+        --line: #dfe5eb;
+        --primary: #1a5f54;
+        --primary-soft: #eaf4f3;
+        --danger: #b42318;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        width: 390px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, sans-serif;
+      }
+
+      .wrap {
+        padding: 16px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .topbar h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .badge {
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .mode-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .mode-btn,
+      .primary-btn,
+      .secondary-btn {
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .mode-btn {
+        border: 1px solid var(--line);
+        background: #f7fafb;
+        color: var(--ink);
+        padding: 10px 8px;
+      }
+
+      .mode-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+      }
+
+      label {
+        display: block;
+        margin: 10px 0 6px;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      input,
+      textarea,
+      button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: white;
+        color: var(--ink);
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        border: 1px solid transparent;
+        padding: 11px 12px;
+      }
+
+      .primary-btn {
+        background: var(--primary);
+        color: white;
+        margin-top: 12px;
+      }
+
+      .secondary-btn {
+        background: white;
+        border-color: var(--line);
+        color: var(--ink);
+        margin-top: 12px;
+      }
+
+      .helper {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      details {
+        margin-top: 12px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .status {
+        min-height: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--primary);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
     </style>
   </head>
   <body>
-    <h3>Enregistrer un snippet</h3>
+    <div class="wrap">
+      <div class="topbar">
+        <h3>LRN App</h3>
+        <span class="badge">secure</span>
+      </div>
 
-    <label>URL API</label>
-    <input id="apiUrl" type="text" value="http://127.0.0.1:8000/api/snippets" />
+      <div class="panel">
+        <div class="mode-toggle">
+          <button id="loginModeBtn" class="mode-btn active" type="button">Connexion</button>
+          <button id="registerModeBtn" class="mode-btn" type="button">Créer un compte</button>
+        </div>
 
-    <label>Token Sanctum</label>
-    <input id="token" type="password" placeholder="Coller le token" />
+        <div>
+          <label id="nameLabel" for="name" hidden>Nom</label>
+          <input id="name" type="text" placeholder="Votre nom" hidden />
 
-    <label>URL source</label>
-    <input id="sourceUrl" type="text" placeholder="URL de la page" />
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="vous@example.com" />
 
-    <label>Contenu</label>
-    <textarea id="content" placeholder="Le texte sélectionné apparaîtra ici..."></textarea>
+          <label for="password">Mot de passe</label>
+          <input id="password" type="password" placeholder="••••••••" />
 
-    <button id="saveBtn">Enregistrer</button>
+          <button id="submitAuthBtn" class="primary-btn" type="button">Se connecter</button>
 
-    <p id="status"></p>
+          <div class="helper">
+            Connectez-vous pour enregistrer vos textes et les envoyer vers votre compte Laravel.
+          </div>
+        </div>
+
+        <details>
+          <summary>Options avancées</summary>
+          <div style="margin-top: 8px;">
+            <label for="apiUrl">URL API</label>
+            <input id="apiUrl" type="text" value="http://127.0.0.1:8001/api" />
+
+            <label for="token">Token de session</label>
+            <input id="token" type="password" placeholder="Token sauvegardé" />
+          </div>
+        </details>
+
+        <button id="logoutBtn" class="secondary-btn" type="button">Déconnexion</button>
+      </div>
+
+      <div class="panel" style="margin-top: 14px;">
+        <label for="sourceUrl">URL source</label>
+        <input id="sourceUrl" type="text" placeholder="https://..." />
+
+        <label for="content">Texte sélectionné</label>
+        <textarea id="content" placeholder="Le texte sélectionné apparaîtra ici..."></textarea>
+
+        <button id="saveBtn" class="primary-btn" type="button">Envoyer vers Laravel</button>
+      </div>
+
+      <div id="status" class="status" aria-live="polite"></div>
+    </div>
 
     <script src="popup.js"></script>
   </body>
