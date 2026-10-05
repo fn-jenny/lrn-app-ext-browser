@@ -12,9 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitAuthBtn = document.getElementById('submitAuthBtn');
   const loginModeBtn = document.getElementById('loginModeBtn');
   const registerModeBtn = document.getElementById('registerModeBtn');
+  const authControls = document.getElementById('authControls');
   const status = document.getElementById('status');
 
   let authMode = 'login';
+  let sendSelectionAfterAuth = false;
 
   const setStatus = (message, isError = false) => {
     status.textContent = message;
@@ -53,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const renderAuthState = (token) => {
     const hasToken = Boolean(token && token.trim());
     tokenInput.value = token || '';
+    authControls.hidden = hasToken;
+    logoutBtn.hidden = !hasToken;
 
     if (hasToken) {
       setStatus('Connecté. Tu peux maintenant envoyer ton texte vers Laravel.');
@@ -67,6 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!email || !password) {
       setStatus('Email et mot de passe requis.', true);
+      return;
+    }
+
+    if (authMode === 'register' && !nameInput.value.trim()) {
+      setStatus('Indiquez votre nom pour créer le compte.', true);
+      return;
+    }
+
+    if (authMode === 'register' && password.length < 8) {
+      setStatus('Le mot de passe doit contenir au moins 8 caractères.', true);
       return;
     }
 
@@ -108,17 +122,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
       storeToken(token);
       setStatus(authMode === 'login' ? 'Connexion réussie.' : 'Compte créé avec succès.');
+      if (sendSelectionAfterAuth && contentInput.value.trim()) {
+        sendSelectionAfterAuth = false;
+        await chrome.storage.local.remove('sendSelectionAfterAuth');
+        await sendSnippet(token, contentInput.value.trim(), sourceUrlInput.value.trim());
+      }
     } catch (error) {
       setStatus(error.message || 'Erreur lors de l’authentification.', true);
     }
   };
 
-  chrome.storage.local.get(['token', 'apiUrl', 'selectedText', 'sourceUrl'], (items) => {
+  const sendSnippet = async (token, content, sourceUrl) => {
+    if (!content) {
+      setStatus('Aucun texte à envoyer.', true);
+      return;
+    }
+
+    try {
+      const response = await fetch(buildApiUrl('/snippets'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content, source_url: sourceUrl })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearToken();
+        }
+        throw new Error(data.message || 'Erreur lors de l’envoi.');
+      }
+
+      await chrome.storage.local.remove(['selectedText', 'sourceUrl']);
+      contentInput.value = '';
+      setStatus('Texte enregistré dans votre compte.');
+    } catch (error) {
+      setStatus(error.message || 'Impossible d’envoyer le texte.', true);
+    }
+  };
+
+  chrome.storage.local.get(['token', 'apiUrl', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus'], (items) => {
     if (items.apiUrl) apiUrlInput.value = items.apiUrl;
     if (items.token) tokenInput.value = items.token;
     if (items.selectedText) contentInput.value = items.selectedText;
     if (items.sourceUrl) sourceUrlInput.value = items.sourceUrl;
+    sendSelectionAfterAuth = Boolean(items.sendSelectionAfterAuth);
     renderAuthState(items.token || '');
+
+    if (items.authMessage) {
+      setStatus(items.authMessage);
+      chrome.storage.local.remove('authMessage');
+    } else if (items.sendStatus) {
+      setStatus(items.sendStatus.message, items.sendStatus.isError);
+      chrome.storage.local.remove('sendStatus');
+      chrome.action.setBadgeText({ text: '' });
+    }
   });
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -141,8 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = contentInput.value.trim();
     const sourceUrl = sourceUrlInput.value.trim();
 
-    if (!token || !content) {
-      setStatus('Connectez-vous d’abord puis ajoutez du contenu à envoyer.', true);
+    if (!token) {
+      setStatus('Connectez-vous pour envoyer le texte sélectionné.', true);
+      return;
+    }
+
+    if (!content) {
+      setStatus('Sélectionnez ou ajoutez un texte avant l’envoi.', true);
       return;
     }
 
@@ -153,36 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceUrl
     });
 
-    try {
-      const response = await fetch(buildApiUrl('/snippets'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content,
-          source_url: sourceUrl
-        })
-      });
-
-      if (response.status === 401) {
-        clearToken();
-        setStatus('Votre session a expiré. Reconnectez-vous pour continuer.', true);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l’envoi.');
-      }
-
-      setStatus('Snippet envoyé avec succès.');
-    } catch (error) {
-      setStatus(error.message || 'Impossible d’envoyer le snippet.', true);
-    }
+    await sendSnippet(token, content, sourceUrl);
   });
 
   apiUrlInput.addEventListener('change', () => {

@@ -33,7 +33,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (!token) {
     await chrome.storage.local.set({
-      authMessage: "Vous n'êtes pas connecté. Connectez-vous pour envoyer le texte sélectionné."
+      authMessage: "Connectez-vous ou créez un compte : le texte sélectionné sera envoyé ensuite.",
+      sendSelectionAfterAuth: true
     });
     chrome.action.openPopup();
     return;
@@ -56,7 +57,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (response.status === 401) {
       await chrome.storage.local.remove("token");
       await chrome.storage.local.set({
-        authMessage: "Votre session a expiré. Connectez-vous de nouveau pour envoyer ce texte."
+        authMessage: "Votre session a expiré. Reconnectez-vous pour envoyer le texte sélectionné.",
+        sendSelectionAfterAuth: true
       });
       chrome.action.openPopup();
       return;

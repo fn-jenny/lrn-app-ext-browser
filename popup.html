@@ -176,12 +176,12 @@
       </div>
 
       <div class="panel">
-        <div class="mode-toggle">
+        <div id="authControls">
+          <div class="mode-toggle">
           <button id="loginModeBtn" class="mode-btn active" type="button">Connexion</button>
           <button id="registerModeBtn" class="mode-btn" type="button">Créer un compte</button>
-        </div>
+          </div>
 
-        <div>
           <label id="nameLabel" for="name" hidden>Nom</label>
           <input id="name" type="text" placeholder="Votre nom" hidden />
 
@@ -203,23 +203,19 @@
           <div style="margin-top: 8px;">
             <label for="apiUrl">URL API</label>
             <input id="apiUrl" type="text" value="http://127.0.0.1:8001/api" />
-
-            <label for="token">Token de session</label>
-            <input id="token" type="password" placeholder="Token sauvegardé" />
           </div>
         </details>
 
-        <button id="logoutBtn" class="secondary-btn" type="button">Déconnexion</button>
+        <button id="logoutBtn" class="secondary-btn" type="button" hidden>Déconnexion</button>
       </div>
 
       <div class="panel" style="margin-top: 14px;">
-        <label for="sourceUrl">URL source</label>
-        <input id="sourceUrl" type="text" placeholder="https://..." />
-
         <label for="content">Texte sélectionné</label>
         <textarea id="content" placeholder="Le texte sélectionné apparaîtra ici..."></textarea>
 
         <button id="saveBtn" class="primary-btn" type="button">Envoyer vers Laravel</button>
+        <input id="sourceUrl" type="hidden" />
+        <input id="token" type="hidden" />
       </div>
 
       <div id="status" class="status" aria-live="polite"></div>
