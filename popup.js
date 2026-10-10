@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginModeBtn = document.getElementById('loginModeBtn');
   const registerModeBtn = document.getElementById('registerModeBtn');
   const authControls = document.getElementById('authControls');
+  const googleBlock = document.getElementById('googleBlock');
+  const googleLoginBtn = document.getElementById('googleLoginBtn');
+  const googleTokenWrap = document.getElementById('googleTokenWrap');
+  const googleTokenInput = document.getElementById('googleToken');
+  const saveGoogleTokenBtn = document.getElementById('saveGoogleTokenBtn');
   const status = document.getElementById('status');
 
   let authMode = 'login';
@@ -40,6 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${base}${endpoint}`;
   };
 
+  const buildWebBase = () => {
+    const apiBase = (apiUrlInput.value.trim() || 'http://127.0.0.1:8000/api').replace(/\/+$/, '');
+    const webBase = apiBase.replace(/\/api$/, '') || 'http://127.0.0.1:8000';
+    // Le flux web doit passer par localhost:8000 (même hôte que APP_URL et
+    // GOOGLE_REDIRECT_URI), sinon le cookie de session est perdu entre
+    // 127.0.0.1 et localhost et le callback retombe sur le dashboard.
+    return webBase.replace('://127.0.0.1:', '://localhost:');
+  };
+
   const storeToken = (token) => {
     tokenInput.value = token;
     chrome.storage.local.set({ token, apiUrl: apiUrlInput.value.trim() });
@@ -56,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasToken = Boolean(token && token.trim());
     tokenInput.value = token || '';
     authControls.hidden = hasToken;
+    googleBlock.hidden = hasToken;
     logoutBtn.hidden = !hasToken;
 
     if (hasToken) {
@@ -165,11 +180,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  chrome.storage.local.get(['token', 'apiUrl', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus'], (items) => {
+  chrome.storage.local.get(['token', 'apiUrl', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus', 'googleFlowPending'], (items) => {
     if (items.apiUrl) apiUrlInput.value = items.apiUrl;
     if (items.token) tokenInput.value = items.token;
     if (items.selectedText) contentInput.value = items.selectedText;
     if (items.sourceUrl) sourceUrlInput.value = items.sourceUrl;
+    if (items.googleFlowPending && !items.token) googleTokenWrap.hidden = false;
     sendSelectionAfterAuth = Boolean(items.sendSelectionAfterAuth);
     renderAuthState(items.token || '');
 
@@ -180,6 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
       setStatus(items.sendStatus.message, items.sendStatus.isError);
       chrome.storage.local.remove('sendStatus');
       chrome.action.setBadgeText({ text: '' });
+    }
+
+    // Pont automatique : le token a pu arriver via la page /extension/token
+    // pendant que le popup était fermé. Si un texte est en attente, on l'envoie.
+    if (items.token && sendSelectionAfterAuth && contentInput.value.trim()) {
+      sendSelectionAfterAuth = false;
+      chrome.storage.local.remove('sendSelectionAfterAuth');
+      sendSnippet(items.token, contentInput.value.trim(), sourceUrlInput.value.trim());
     }
   });
 
@@ -192,6 +216,33 @@ document.addEventListener('DOMContentLoaded', () => {
   loginModeBtn.addEventListener('click', () => setAuthMode('login'));
   registerModeBtn.addEventListener('click', () => setAuthMode('register'));
   submitAuthBtn.addEventListener('click', handleAuth);
+
+  googleLoginBtn.addEventListener('click', () => {
+    const url = `${buildWebBase()}/auth/google/redirect?from=extension`;
+    chrome.storage.local.set({ apiUrl: apiUrlInput.value.trim(), googleFlowPending: true });
+    chrome.tabs.create({ url });
+    googleTokenWrap.hidden = false;
+    setStatus('Terminez la connexion Google dans l’onglet ouvert, puis collez ici le token affiché.');
+  });
+
+  saveGoogleTokenBtn.addEventListener('click', async () => {
+    const token = googleTokenInput.value.trim();
+
+    if (!token) {
+      setStatus('Collez le token affiché sur le site après la connexion Google.', true);
+      return;
+    }
+
+    storeToken(token);
+    googleTokenInput.value = '';
+    await chrome.storage.local.remove('googleFlowPending');
+    setStatus('Compte Google lié à l’extension.');
+    if (sendSelectionAfterAuth && contentInput.value.trim()) {
+      sendSelectionAfterAuth = false;
+      await chrome.storage.local.remove('sendSelectionAfterAuth');
+      await sendSnippet(token, contentInput.value.trim(), sourceUrlInput.value.trim());
+    }
+  });
 
   logoutBtn.addEventListener('click', () => {
     clearToken();

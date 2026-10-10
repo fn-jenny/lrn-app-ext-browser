@@ -29,7 +29,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   });
 
   const { token, apiUrl } = await chrome.storage.local.get(["token", "apiUrl"]);
-  const apiBase = (apiUrl || "http://127.0.0.1:8001/api").replace(/\/+$/, "");
+  const apiBase = (apiUrl || "http://127.0.0.1:8000/api").replace(/\/+$/, "");
 
   if (!token) {
     await chrome.storage.local.set({

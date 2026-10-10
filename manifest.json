@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LRN App Snippet Saver",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Save selected text to Laravel",
   "permissions": [
     "storage",
@@ -9,6 +9,13 @@
     "activeTab",
     "contextMenus"
   ],
+  "oauth2": {
+    "client_id": "106622489226-9rkpm8ik58u8dr38m0on6jsvp6bkck97.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
+  },
   "host_permissions": [
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*",
@@ -24,6 +31,14 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "http://localhost:8000/extension/token",
+        "http://127.0.0.1:8000/extension/token"
+      ],
+      "js": ["token-bridge.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {

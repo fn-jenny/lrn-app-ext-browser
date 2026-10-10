@@ -198,11 +198,29 @@
           </div>
         </div>
 
+        <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--muted); font-size: 11px;">
+          <div style="flex: 1; border-top: 1px solid var(--line);"></div>
+          <span>ou</span>
+          <div style="flex: 1; border-top: 1px solid var(--line);"></div>
+        </div>
+
+        <div id="googleBlock">
+          <button id="googleLoginBtn" class="secondary-btn" type="button" style="margin-top: 0;">Continuer avec Google</button>
+          <div class="helper">
+            Ouvre le site pour vous connecter avec Google, puis collez ici le token affiché.
+          </div>
+          <div id="googleTokenWrap" hidden>
+            <label for="googleToken">Token Google</label>
+            <input id="googleToken" type="text" placeholder="Collez le token affiché sur le site" />
+            <button id="saveGoogleTokenBtn" class="primary-btn" type="button">Enregistrer le token</button>
+          </div>
+        </div>
+
         <details>
           <summary>Options avancées</summary>
           <div style="margin-top: 8px;">
             <label for="apiUrl">URL API</label>
-            <input id="apiUrl" type="text" value="http://127.0.0.1:8001/api" />
+            <input id="apiUrl" type="text" value="http://127.0.0.1:8000/api" />
           </div>
         </details>
 
