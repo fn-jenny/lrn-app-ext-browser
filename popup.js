@@ -59,9 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.hidden = !hasToken;
 
     if (hasToken) {
-      setStatus('Connecté. Tu peux maintenant envoyer ton texte vers Laravel.');
+      setStatus('Connecté. Tu peux envoyer un mot vers ton vocabulaire Lexikeep.');
     } else {
-      setStatus('Bienvenue. Connecte-toi pour enregistrer ton texte sélectionné.');
+      setStatus('Bienvenue. Connecte-toi pour enregistrer un mot sélectionné.');
     }
   };
 
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sendSnippet = async (token, content, sourceUrl) => {
     if (!content) {
-      setStatus('Aucun texte à envoyer.', true);
+      setStatus('Aucun mot à envoyer.', true);
       return;
     }
 
@@ -159,9 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       await chrome.storage.local.remove(['selectedText', 'sourceUrl']);
       contentInput.value = '';
-      setStatus('Texte enregistré dans votre compte.');
+      setStatus(data.message || 'Mot enregistré. La fiche IA se génère dans Lexikeep.');
     } catch (error) {
-      setStatus(error.message || 'Impossible d’envoyer le texte.', true);
+      setStatus(error.message || 'Impossible d’envoyer le mot.', true);
     }
   };
 
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   logoutBtn.addEventListener('click', () => {
     clearToken();
-    setStatus('Déconnecté. Pour réenvoyer un texte, reconnectez-vous.', false);
+    setStatus('Déconnecté. Pour réenvoyer un mot, reconnectez-vous.', false);
   });
 
   saveBtn.addEventListener('click', async () => {
@@ -204,12 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const sourceUrl = sourceUrlInput.value.trim();
 
     if (!token) {
-      setStatus('Connectez-vous pour envoyer le texte sélectionné.', true);
+      setStatus('Connectez-vous pour envoyer le mot sélectionné.', true);
       return;
     }
 
     if (!content) {
-      setStatus('Sélectionnez ou ajoutez un texte avant l’envoi.', true);
+      setStatus('Sélectionnez ou ajoutez un mot avant l’envoi.', true);
       return;
     }
 

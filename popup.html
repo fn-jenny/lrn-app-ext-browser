@@ -3,16 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LRN Snippet</title>
+    <title>Lexikeep — Vocabulaire</title>
     <style>
       :root {
-        --bg: #f4f2ee;
+        --bg: #f7f5f2;
         --panel: #ffffff;
         --ink: #1b2330;
         --muted: #586271;
         --line: #dfe5eb;
-        --primary: #1a5f54;
-        --primary-soft: #eaf4f3;
+        --primary: #4f46e5;
+        --primary-soft: #eef2ff;
+        --accent: #f97316;
         --danger: #b42318;
       }
 
@@ -38,9 +39,17 @@
         margin-bottom: 12px;
       }
 
-      .topbar h3 {
-        margin: 0;
-        font-size: 18px;
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand img {
+        height: 28px;
+        width: auto;
+        display: block;
       }
 
       .badge {
@@ -127,7 +136,7 @@
       }
 
       .primary-btn {
-        background: var(--primary);
+        background: var(--accent);
         color: white;
         margin-top: 12px;
       }
@@ -171,8 +180,10 @@
   <body>
     <div class="wrap">
       <div class="topbar">
-        <h3>LRN App</h3>
-        <span class="badge">secure</span>
+        <div class="brand">
+          <img src="icons/lexikeep-logo.png" alt="Lexikeep" />
+        </div>
+        <span class="badge">mots</span>
       </div>
 
       <div class="panel">
@@ -194,7 +205,7 @@
           <button id="submitAuthBtn" class="primary-btn" type="button">Se connecter</button>
 
           <div class="helper">
-            Connectez-vous pour enregistrer vos textes et les envoyer vers votre compte Laravel.
+            Connectez-vous pour envoyer les mots sélectionnés vers votre vocabulaire Lexikeep.
           </div>
         </div>
 
@@ -210,10 +221,10 @@
       </div>
 
       <div class="panel" style="margin-top: 14px;">
-        <label for="content">Texte sélectionné</label>
-        <textarea id="content" placeholder="Le texte sélectionné apparaîtra ici..."></textarea>
+        <label for="content">Mot sélectionné</label>
+        <textarea id="content" placeholder="Le mot sélectionné apparaîtra ici..."></textarea>
 
-        <button id="saveBtn" class="primary-btn" type="button">Envoyer vers Laravel</button>
+        <button id="saveBtn" class="primary-btn" type="button">Envoyer le mot</button>
         <input id="sourceUrl" type="hidden" />
         <input id="token" type="hidden" />
       </div>
