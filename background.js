@@ -2,7 +2,7 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: "save-selected-text",
-      title: "Envoyer sur lrn-app",
+      title: "Envoyer le mot vers Lexikeep",
       contexts: ["selection"]
     });
   });
@@ -23,8 +23,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
+  const selectedWord = info.selectionText.trim();
+
   await chrome.storage.local.set({
-    selectedText: info.selectionText.trim(),
+    selectedText: selectedWord,
     sourceUrl: tab?.url ?? ""
   });
 
@@ -33,7 +35,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (!token) {
     await chrome.storage.local.set({
-      authMessage: "Connectez-vous ou créez un compte : le texte sélectionné sera envoyé ensuite.",
+      authMessage: "Connectez-vous ou créez un compte : le mot sélectionné sera envoyé ensuite.",
       sendSelectionAfterAuth: true
     });
     chrome.action.openPopup();
@@ -49,7 +51,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        content: info.selectionText.trim(),
+        content: selectedWord,
         source_url: tab?.url ?? ""
       })
     });
@@ -57,7 +59,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (response.status === 401) {
       await chrome.storage.local.remove("token");
       await chrome.storage.local.set({
-        authMessage: "Votre session a expiré. Reconnectez-vous pour envoyer le texte sélectionné.",
+        authMessage: "Votre session a expiré. Reconnectez-vous pour envoyer le mot sélectionné.",
         sendSelectionAfterAuth: true
       });
       chrome.action.openPopup();
@@ -70,10 +72,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       throw new Error(data.message || "Erreur lors de l'enregistrement.");
     }
 
-    await showSendStatus(data.message || "Snippet enregistré !");
-    console.log("Snippet enregistré :", data);
+    await showSendStatus(data.message || "Mot enregistré !");
+    console.log("Mot enregistré :", data);
   } catch (error) {
-    console.error("Impossible d'enregistrer le snippet :", error);
+    console.error("Impossible d'enregistrer le mot :", error);
     await showSendStatus(error.message || "Erreur lors de l'envoi.", true);
     chrome.action.openPopup();
   }
