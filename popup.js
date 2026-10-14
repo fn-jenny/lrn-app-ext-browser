@@ -18,10 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const googleTokenWrap = document.getElementById('googleTokenWrap');
   const googleTokenInput = document.getElementById('googleToken');
   const saveGoogleTokenBtn = document.getElementById('saveGoogleTokenBtn');
+  const accountBar = document.getElementById('accountBar');
+  const accountName = document.getElementById('accountName');
+  const accountEmail = document.getElementById('accountEmail');
   const status = document.getElementById('status');
 
   let authMode = 'login';
   let sendSelectionAfterAuth = false;
+  let currentUser = { name: '', email: '' };
 
   const setStatus = (message, isError = false) => {
     status.textContent = message;
@@ -56,13 +60,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const storeToken = (token) => {
     tokenInput.value = token;
-    chrome.storage.local.set({ token, apiUrl: apiUrlInput.value.trim() });
+    chrome.storage.local.set({
+      token,
+      apiUrl: apiUrlInput.value.trim(),
+      userName: currentUser.name || '',
+      userEmail: currentUser.email || ''
+    });
     renderAuthState(token);
   };
 
   const clearToken = () => {
     tokenInput.value = '';
-    chrome.storage.local.remove('token');
+    currentUser = { name: '', email: '' };
+    chrome.storage.local.remove(['token', 'userName', 'userEmail']);
     renderAuthState('');
   };
 
@@ -72,9 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
     authControls.hidden = hasToken;
     googleBlock.hidden = hasToken;
     logoutBtn.hidden = !hasToken;
+    accountBar.hidden = !hasToken || !currentUser.name;
 
     if (hasToken) {
-      setStatus('Connecté. Tu peux maintenant envoyer ton texte vers Laravel.');
+      accountName.textContent = currentUser.name || '';
+      accountEmail.textContent = currentUser.email ? `(${currentUser.email})` : '';
+      setStatus(currentUser.name
+        ? `Connecté : ${currentUser.name}${currentUser.email ? ` (${currentUser.email})` : ''} — envoie ton texte.`
+        : 'Connecté. Tu peux maintenant envoyer ton texte vers Laravel.');
     } else {
       setStatus('Bienvenue. Connecte-toi pour enregistrer ton texte sélectionné.');
     }
@@ -135,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('Le serveur n’a pas renvoyé de token.');
       }
 
+      currentUser = { name: data.user?.name || '', email: data.user?.email || '' };
       storeToken(token);
       setStatus(authMode === 'login' ? 'Connexion réussie.' : 'Compte créé avec succès.');
       if (sendSelectionAfterAuth && contentInput.value.trim()) {
@@ -180,11 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  chrome.storage.local.get(['token', 'apiUrl', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus', 'googleFlowPending'], (items) => {
+  chrome.storage.local.get(['token', 'apiUrl', 'userName', 'userEmail', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus', 'googleFlowPending'], (items) => {
     if (items.apiUrl) apiUrlInput.value = items.apiUrl;
     if (items.token) tokenInput.value = items.token;
     if (items.selectedText) contentInput.value = items.selectedText;
     if (items.sourceUrl) sourceUrlInput.value = items.sourceUrl;
+    currentUser = { name: items.userName || '', email: items.userEmail || '' };
     if (items.googleFlowPending && !items.token) googleTokenWrap.hidden = false;
     sendSelectionAfterAuth = Boolean(items.sendSelectionAfterAuth);
     renderAuthState(items.token || '');
@@ -236,7 +253,22 @@ document.addEventListener('DOMContentLoaded', () => {
     storeToken(token);
     googleTokenInput.value = '';
     await chrome.storage.local.remove('googleFlowPending');
-    setStatus('Compte Google lié à l’extension.');
+
+    // Le token manuel ne dit pas qui tu es : on demande au serveur.
+    try {
+      const me = await fetch(buildApiUrl('/user'), {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+      });
+      if (me.ok) {
+        const u = await me.json();
+        currentUser = { name: u.name || '', email: u.email || '' };
+        chrome.storage.local.set({ userName: currentUser.name, userEmail: currentUser.email });
+        renderAuthState(token);
+      }
+    } catch {
+      // Pas grave : on reste connecté sans le nom.
+    }
+    setStatus(currentUser.name ? `Compte Google lié : ${currentUser.name}.` : 'Compte Google lié à l’extension.');
     if (sendSelectionAfterAuth && contentInput.value.trim()) {
       sendSelectionAfterAuth = false;
       await chrome.storage.local.remove('sendSelectionAfterAuth');

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LRN App Snippet Saver",
-  "version": "1.2.0",
+  "version": "1.3.2",
   "description": "Save selected text to Laravel",
   "permissions": [
     "storage",
@@ -34,8 +34,10 @@
     },
     {
       "matches": [
-        "http://localhost:8000/extension/token",
-        "http://127.0.0.1:8000/extension/token"
+        "http://localhost:8000/extension/token*",
+        "http://127.0.0.1:8000/extension/token*",
+        "http://localhost:8001/extension/token*",
+        "http://127.0.0.1:8001/extension/token*"
       ],
       "js": ["token-bridge.js"],
       "run_at": "document_idle"

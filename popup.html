@@ -163,6 +163,19 @@
         color: var(--primary);
       }
 
+      .account {
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 12px;
+      }
+
+      .account span {
+        color: var(--muted);
+      }
+
       .status.error {
         color: var(--danger);
       }
@@ -176,6 +189,9 @@
       </div>
 
       <div class="panel">
+        <div id="accountBar" class="account" hidden>
+          Connecté : <b id="accountName"></b> <span id="accountEmail"></span>
+        </div>
         <div id="authControls">
           <div class="mode-toggle">
           <button id="loginModeBtn" class="mode-btn active" type="button">Connexion</button>
