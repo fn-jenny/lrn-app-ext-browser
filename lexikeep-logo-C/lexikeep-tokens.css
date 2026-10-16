@@ -1,0 +1,16 @@
+/* Lexikeep – charte graphique v1 */
+:root {
+  --lk-primary: #4338CA;      /* Indigo Savoir */
+  --lk-primary-light: #EEF0FF;
+  --lk-accent: #F59E0B;       /* Ambre Mémoire */
+  --lk-accent-light: #FEF3C7;
+  --lk-ink: #1C1B2E;          /* texte */
+  --lk-muted: #6B6880;
+  --lk-paper: #FAF8F3;        /* fond */
+  --lk-surface: #FFFFFF;
+  --lk-success: #16A34A;
+  --lk-error: #DC2626;
+  --lk-radius: 14px;
+  --lk-font-ui: "Inter", system-ui, sans-serif;
+  --lk-font-word: "Fraunces", Georgia, serif;
+}

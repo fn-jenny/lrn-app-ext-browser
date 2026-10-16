@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Garde-fou : popup.html ouvert directement comme fichier (file://) au lieu du
+  // bouton d'extension -> les APIs chrome.storage n'existent pas, on l'explique
+  // au lieu de planter sur "Cannot read properties of undefined (reading 'local')".
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    document.getElementById('status').textContent =
+      "Ouvrez cette fenêtre via le bouton Lexikeep de Chrome (pas comme un fichier).";
+    return;
+  }
   const apiUrlInput = document.getElementById('apiUrl');
   const nameInput = document.getElementById('name');
   const nameLabel = document.getElementById('nameLabel');
@@ -6,8 +14,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordInput = document.getElementById('password');
   const tokenInput = document.getElementById('token');
   const sourceUrlInput = document.getElementById('sourceUrl');
-  const contentInput = document.getElementById('content');
-  const saveBtn = document.getElementById('saveBtn');
+  const wordLibelleInput = document.getElementById('wordLibelle');
+  const saveWordBtn = document.getElementById('saveWordBtn');
+  const resultCard = document.getElementById('resultCard');
+  const resLibelle = document.getElementById('resLibelle');
+  const resStatut = document.getElementById('resStatut');
+  const resDefinition = document.getElementById('resDefinition');
+  const resAntonyme = document.getElementById('resAntonyme');
+  const resExemplesWrap = document.getElementById('resExemplesWrap');
+  const resExemples = document.getElementById('resExemples');
+  const resFicheId = document.getElementById('resFicheId');
+  const refreshResultBtn = document.getElementById('refreshResultBtn');
+  const newExplainBtn = document.getElementById('newExplainBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   const submitAuthBtn = document.getElementById('submitAuthBtn');
   const loginModeBtn = document.getElementById('loginModeBtn');
@@ -32,10 +50,56 @@ document.addEventListener('DOMContentLoaded', () => {
     status.classList.toggle('error', isError);
   };
 
+  /**
+   * Affiche la fiche expliquée (définition + exemples + antonyme)
+   * à la place du formulaire, et la mémorise pour la prochaine ouverture.
+   */
+  const afficherResultat = (fiche) => {
+    if (!fiche) return;
+    resLibelle.textContent = fiche.libelle || '';
+    resFicheId.value = fiche.id || '';
+
+    const validee = fiche.statut === 'validee';
+    resStatut.textContent = validee ? '✓ Validée' : '⏳ En cours...';
+
+    resDefinition.textContent = fiche.definition
+      ? `« ${fiche.definition} »`
+      : 'Explication en cours de génération... revenez Actualiser dans un instant.';
+
+    if (fiche.antonyme) {
+      resAntonyme.hidden = false;
+      resAntonyme.innerHTML = '';
+      resAntonyme.append('Contraire : ');
+      const fort = document.createElement('strong');
+      fort.textContent = fiche.antonyme;
+      resAntonyme.append(fort);
+    } else {
+      resAntonyme.hidden = true;
+    }
+
+    resExemples.innerHTML = '';
+    const exemples = Array.isArray(fiche.exemples) ? fiche.exemples : [];
+    resExemplesWrap.hidden = exemples.length === 0;
+    exemples.forEach((ex) => {
+      const li = document.createElement('li');
+      li.textContent = ex.phrase || '';
+      resExemples.append(li);
+    });
+
+    refreshResultBtn.hidden = validee;
+    resultCard.hidden = false;
+    chrome.storage.local.set({ lastFiche: fiche });
+    setStatus(validee ? 'Fiche validée : relisez-la pour la mémoriser.' : 'Explication en cours... cliquez Actualiser.', false);
+  };
+
+  const montrerFormulaire = () => {
+    resultCard.hidden = true;
+    chrome.storage.local.remove('lastFiche');
+  };
+
   const setAuthMode = (mode) => {
     authMode = mode;
     const isLogin = mode === 'login';
-
     loginModeBtn.classList.toggle('active', isLogin);
     registerModeBtn.classList.toggle('active', !isLogin);
     submitAuthBtn.textContent = isLogin ? 'Se connecter' : 'Créer mon compte';
@@ -88,10 +152,18 @@ document.addEventListener('DOMContentLoaded', () => {
       accountName.textContent = currentUser.name || '';
       accountEmail.textContent = currentUser.email ? `(${currentUser.email})` : '';
       setStatus(currentUser.name
-        ? `Connecté : ${currentUser.name}${currentUser.email ? ` (${currentUser.email})` : ''} — envoie ton texte.`
-        : 'Connecté. Tu peux maintenant envoyer ton texte vers Laravel.');
+        ? `Connecté : ${currentUser.name}${currentUser.email ? ` (${currentUser.email})` : ''} — sélectionne un mot ou une phrase à expliquer.`
+        : 'Connecté. Sélectionne un mot ou une phrase à expliquer.');
     } else {
-      setStatus('Bienvenue. Connecte-toi pour enregistrer ton texte sélectionné.');
+      setStatus('Bienvenue. Connecte-toi pour expliquer tes sélections.');
+    }
+  };
+
+  const envoyerApresConnexion = async (token) => {
+    if (sendSelectionAfterAuth && wordLibelleInput.value.trim()) {
+      sendSelectionAfterAuth = false;
+      await chrome.storage.local.remove('sendSelectionAfterAuth');
+      await sendFicheMot(token, wordLibelleInput.value.trim(), sourceUrlInput.value.trim());
     }
   };
 
@@ -153,31 +225,69 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = { name: data.user?.name || '', email: data.user?.email || '' };
       storeToken(token);
       setStatus(authMode === 'login' ? 'Connexion réussie.' : 'Compte créé avec succès.');
-      if (sendSelectionAfterAuth && contentInput.value.trim()) {
-        sendSelectionAfterAuth = false;
-        await chrome.storage.local.remove('sendSelectionAfterAuth');
-        await sendSnippet(token, contentInput.value.trim(), sourceUrlInput.value.trim());
-      }
+      await envoyerApresConnexion(token);
     } catch (error) {
       setStatus(error.message || 'Erreur lors de l’authentification.', true);
     }
   };
 
-  const sendSnippet = async (token, content, sourceUrl) => {
-    if (!content) {
-      setStatus('Aucun texte à envoyer.', true);
+  /**
+   * Une seule action : expliquer la sélection.
+   * 1) Le passage est gardé comme contexte (snippet),
+   * 2) la fiche est créée et liée à ce contexte,
+   * 3) le job l'enrichit : signification + 3 exemples + antonyme.
+   */
+  const sendFicheMot = async (token, libelle, sourceUrl) => {
+    if (!libelle) {
+      setStatus('Sélectionne un mot ou une phrase à expliquer.', true);
       return;
     }
 
+    // Une fiche = un mot ou une phrase simple (colonne limitée à 255 caractères).
+    if (libelle.length > 255) {
+      setStatus('Sélection trop longue : choisis un mot ou une phrase simple à comprendre.', true);
+      return;
+    }
+
+    setStatus('Explication en cours...', false);
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
     try {
-      const response = await fetch(buildApiUrl('/snippets'), {
+      // 1) Contexte de lecture (optionnel : la fiche reste utile sans lui).
+      let snippetId = null;
+      try {
+        const resSnippet = await fetch(buildApiUrl('/snippets'), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ content: libelle, source_url: sourceUrl })
+        });
+        if (resSnippet.status === 401) {
+          clearToken();
+          throw new Error('Session expirée. Reconnectez-vous.');
+        }
+        if (resSnippet.ok) {
+          snippetId = (await resSnippet.json()).snippet?.id ?? null;
+        }
+      } catch (error) {
+        if (/Session expirée/.test(error.message || '')) throw error;
+        console.warn('Contexte non enregistré, fiche créée sans lui :', error);
+      }
+
+      // 2) La fiche à comprendre (type auto : 1 mot -> mot, sinon expression).
+      const type = libelle.split(/\s+/).length > 1 ? 'expression' : 'mot';
+      const response = await fetch(buildApiUrl('/fiches-mots'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ content, source_url: sourceUrl })
+        headers,
+        body: JSON.stringify({
+          libelle,
+          type,
+          snippet_id: snippetId,
+          selections: [{ texte: libelle }]
+        })
       });
 
       const data = await response.json();
@@ -185,22 +295,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.status === 401) {
           clearToken();
         }
-        throw new Error(data.message || 'Erreur lors de l’envoi.');
+        throw new Error(data.message || 'Erreur lors de la création de la fiche.');
       }
 
       await chrome.storage.local.remove(['selectedText', 'sourceUrl']);
-      contentInput.value = '';
-      setStatus('Texte enregistré dans votre compte.');
+      wordLibelleInput.value = '';
+
+      afficherResultat(data.fiche);
     } catch (error) {
-      setStatus(error.message || 'Impossible d’envoyer le texte.', true);
+      setStatus(error.message || 'Impossible d’expliquer la sélection.', true);
     }
   };
 
-  chrome.storage.local.get(['token', 'apiUrl', 'userName', 'userEmail', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus', 'googleFlowPending'], (items) => {
+  chrome.storage.local.get(['token', 'apiUrl', 'userName', 'userEmail', 'selectedText', 'sourceUrl', 'authMessage', 'sendSelectionAfterAuth', 'sendStatus', 'googleFlowPending', 'lastFiche'], (items) => {
     if (items.apiUrl) apiUrlInput.value = items.apiUrl;
     if (items.token) tokenInput.value = items.token;
-    if (items.selectedText) contentInput.value = items.selectedText;
     if (items.sourceUrl) sourceUrlInput.value = items.sourceUrl;
+
+    if (items.selectedText) {
+      // Nouvelle sélection prioritaire : on montre le formulaire pré-rempli.
+      montrerFormulaire();
+      wordLibelleInput.value = items.selectedText.trim();
+    } else if (items.lastFiche) {
+      // Sinon on remontre la dernière explication (définition, pas un champ vide).
+      afficherResultat(items.lastFiche);
+    }
+
     currentUser = { name: items.userName || '', email: items.userEmail || '' };
     if (items.googleFlowPending && !items.token) googleTokenWrap.hidden = false;
     sendSelectionAfterAuth = Boolean(items.sendSelectionAfterAuth);
@@ -215,12 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.action.setBadgeText({ text: '' });
     }
 
-    // Pont automatique : le token a pu arriver via la page /extension/token
-    // pendant que le popup était fermé. Si un texte est en attente, on l'envoie.
-    if (items.token && sendSelectionAfterAuth && contentInput.value.trim()) {
-      sendSelectionAfterAuth = false;
-      chrome.storage.local.remove('sendSelectionAfterAuth');
-      sendSnippet(items.token, contentInput.value.trim(), sourceUrlInput.value.trim());
+    // Pont automatique : si authentifié et qu'une explication était en attente.
+    if (items.token && sendSelectionAfterAuth) {
+      envoyerApresConnexion(items.token);
     }
   });
 
@@ -269,41 +386,61 @@ document.addEventListener('DOMContentLoaded', () => {
       // Pas grave : on reste connecté sans le nom.
     }
     setStatus(currentUser.name ? `Compte Google lié : ${currentUser.name}.` : 'Compte Google lié à l’extension.');
-    if (sendSelectionAfterAuth && contentInput.value.trim()) {
-      sendSelectionAfterAuth = false;
-      await chrome.storage.local.remove('sendSelectionAfterAuth');
-      await sendSnippet(token, contentInput.value.trim(), sourceUrlInput.value.trim());
-    }
+    await envoyerApresConnexion(token);
   });
 
   logoutBtn.addEventListener('click', () => {
     clearToken();
-    setStatus('Déconnecté. Pour réenvoyer un texte, reconnectez-vous.', false);
+    setStatus('Déconnecté. Pour expliquer un texte, reconnectez-vous.', false);
   });
 
-  saveBtn.addEventListener('click', async () => {
+  refreshResultBtn.addEventListener('click', async () => {
     const token = tokenInput.value.trim();
-    const content = contentInput.value.trim();
+    const id = resFicheId.value.trim();
+    if (!token || !id) return;
+    setStatus('Actualisation...', false);
+    try {
+      const response = await fetch(buildApiUrl(`/fiches-mots/${id}`), {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Actualisation impossible.');
+      afficherResultat(data.fiche);
+    } catch (error) {
+      setStatus(error.message || 'Actualisation impossible.', true);
+    }
+  });
+
+  newExplainBtn.addEventListener('click', () => {
+    montrerFormulaire();
+    wordLibelleInput.value = '';
+    wordLibelleInput.focus();
+    setStatus('Sélectionne un mot ou une phrase à expliquer.', false);
+  });
+
+  saveWordBtn.addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    const libelle = wordLibelleInput.value.trim();
     const sourceUrl = sourceUrlInput.value.trim();
 
     if (!token) {
-      setStatus('Connectez-vous pour envoyer le texte sélectionné.', true);
+      setStatus('Connectez-vous pour expliquer votre sélection.', true);
       return;
     }
 
-    if (!content) {
-      setStatus('Sélectionnez ou ajoutez un texte avant l’envoi.', true);
+    if (!libelle) {
+      setStatus('Sélectionne un mot ou une phrase à expliquer.', true);
       return;
     }
 
     chrome.storage.local.set({
       token,
       apiUrl: apiUrlInput.value.trim(),
-      selectedText: content,
+      selectedText: libelle,
       sourceUrl
     });
 
-    await sendSnippet(token, content, sourceUrl);
+    await sendFicheMot(token, libelle, sourceUrl);
   });
 
   apiUrlInput.addEventListener('change', () => {

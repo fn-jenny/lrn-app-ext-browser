@@ -3,27 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LRN Snippet</title>
+    <title>Lexikeep Snippet</title>
+    <link rel="stylesheet" href="lexikeep-tokens.css" />
     <style>
-      :root {
-        --bg: #f4f2ee;
-        --panel: #ffffff;
-        --ink: #1b2330;
-        --muted: #586271;
-        --line: #dfe5eb;
-        --primary: #1a5f54;
-        --primary-soft: #eaf4f3;
-        --danger: #b42318;
-      }
-
       * { box-sizing: border-box; }
 
       body {
         margin: 0;
         width: 390px;
-        background: var(--bg);
-        color: var(--ink);
-        font-family: Arial, sans-serif;
+        background: var(--lk-paper);
+        color: var(--lk-ink);
+        font-family: var(--lk-font-ui);
       }
 
       .wrap {
@@ -38,14 +28,15 @@
         margin-bottom: 12px;
       }
 
-      .topbar h3 {
-        margin: 0;
-        font-size: 18px;
+      .logo {
+        display: block;
+        height: 28px;
+        width: auto;
       }
 
       .badge {
-        background: var(--primary-soft);
-        color: var(--primary);
+        background: var(--lk-accent-light);
+        color: var(--lk-ink);
         border-radius: 999px;
         padding: 4px 8px;
         font-size: 10px;
@@ -55,9 +46,9 @@
       }
 
       .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 14px;
+        background: var(--lk-surface);
+        border: 1px solid rgba(67, 56, 202, 0.12);
+        border-radius: var(--lk-radius);
         padding: 14px;
       }
 
@@ -75,18 +66,19 @@
         cursor: pointer;
         font-size: 13px;
         font-weight: 700;
+        font-family: var(--lk-font-ui);
       }
 
       .mode-btn {
-        border: 1px solid var(--line);
-        background: #f7fafb;
-        color: var(--ink);
+        border: 1px solid rgba(67, 56, 202, 0.2);
+        background: var(--lk-primary-light);
+        color: var(--lk-ink);
         padding: 10px 8px;
       }
 
       .mode-btn.active {
-        background: var(--primary);
-        border-color: var(--primary);
+        background: var(--lk-primary);
+        border-color: var(--lk-primary);
         color: white;
       }
 
@@ -94,7 +86,7 @@
         display: block;
         margin: 10px 0 6px;
         font-size: 12px;
-        color: var(--muted);
+        color: var(--lk-muted);
         font-weight: 700;
       }
 
@@ -107,12 +99,20 @@
 
       input,
       textarea {
-        border: 1px solid var(--line);
+        border: 1px solid rgba(67, 56, 202, 0.2);
         border-radius: 10px;
-        background: white;
-        color: var(--ink);
+        background: var(--lk-surface);
+        color: var(--lk-ink);
         padding: 10px 12px;
         font-size: 13px;
+        font-family: var(--lk-font-ui);
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--lk-primary);
+        box-shadow: 0 0 0 2px var(--lk-primary-light);
       }
 
       textarea {
@@ -127,21 +127,29 @@
       }
 
       .primary-btn {
-        background: var(--primary);
+        background: var(--lk-primary);
         color: white;
         margin-top: 12px;
       }
 
+      .primary-btn:hover {
+        background: #3730a3;
+      }
+
       .secondary-btn {
-        background: white;
-        border-color: var(--line);
-        color: var(--ink);
+        background: var(--lk-surface);
+        border-color: rgba(67, 56, 202, 0.2);
+        color: var(--lk-ink);
         margin-top: 12px;
+      }
+
+      .secondary-btn:hover {
+        background: var(--lk-primary-light);
       }
 
       .helper {
         margin-top: 12px;
-        color: var(--muted);
+        color: var(--lk-muted);
         font-size: 11px;
         line-height: 1.5;
       }
@@ -153,39 +161,45 @@
       summary {
         cursor: pointer;
         font-size: 12px;
-        color: var(--muted);
+        color: var(--lk-muted);
       }
 
       .status {
         min-height: 18px;
         margin-top: 12px;
         font-size: 12px;
-        color: var(--primary);
+        color: var(--lk-success);
       }
 
       .account {
         margin-bottom: 12px;
         padding: 8px 12px;
         border-radius: 10px;
-        background: var(--primary-soft);
-        color: var(--primary);
+        background: var(--lk-primary-light);
+        color: var(--lk-primary);
         font-size: 12px;
       }
 
       .account span {
-        color: var(--muted);
+        color: var(--lk-muted);
       }
 
       .status.error {
-        color: var(--danger);
+        color: var(--lk-error);
+      }
+
+      .panel-title {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-family: var(--lk-font-word);
       }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="topbar">
-        <h3>LRN App</h3>
-        <span class="badge">secure</span>
+        <img src="lexikeep-logo-C/lexikeep-logo-long.svg" alt="Lexikeep" class="logo" />
+        <span class="badge">Lexikeep</span>
       </div>
 
       <div class="panel">
@@ -210,14 +224,14 @@
           <button id="submitAuthBtn" class="primary-btn" type="button">Se connecter</button>
 
           <div class="helper">
-            Connectez-vous pour enregistrer vos textes et les envoyer vers votre compte Laravel.
+            Connectez-vous pour enregistrer vos textes et les envoyer vers votre compte Lexikeep.
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--muted); font-size: 11px;">
-          <div style="flex: 1; border-top: 1px solid var(--line);"></div>
+        <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--lk-muted); font-size: 11px;">
+          <div style="flex: 1; border-top: 1px solid rgba(67, 56, 202, 0.2);"></div>
           <span>ou</span>
-          <div style="flex: 1; border-top: 1px solid var(--line);"></div>
+          <div style="flex: 1; border-top: 1px solid rgba(67, 56, 202, 0.2);"></div>
         </div>
 
         <div id="googleBlock">
@@ -244,12 +258,37 @@
       </div>
 
       <div class="panel" style="margin-top: 14px;">
-        <label for="content">Texte sélectionné</label>
-        <textarea id="content" placeholder="Le texte sélectionné apparaîtra ici..."></textarea>
+        <label for="wordLibelle" style="margin-top: 0;">Mot ou phrase simple</label>
+        <input id="wordLibelle" type="text" maxlength="255" placeholder="Ex: ephemeral, en un clin d'œil..." />
+        <div class="helper" style="margin-top: 6px;">Un mot ou une phrase simple à la fois : c'est ce qui se mémorise le mieux.</div>
 
-        <button id="saveBtn" class="primary-btn" type="button">Envoyer vers Laravel</button>
+        <div style="font-size: 11px; color: var(--lk-primary); font-weight: 700; margin-top: 10px;">
+          ✨ Signification + 3 exemples + contraire, générés automatiquement
+        </div>
+
+        <button id="saveWordBtn" class="primary-btn" type="button" style="margin-top: 14px;">Expliquer avec l'IA</button>
+
         <input id="sourceUrl" type="hidden" />
         <input id="token" type="hidden" />
+      </div>
+
+      <!-- Carte résultat : la définition s'affiche ici, pas un champ vide -->
+      <div id="resultCard" class="panel" style="margin-top: 14px;" hidden>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <h3 id="resLibelle" class="panel-title" style="font-size: 16px;"></h3>
+          <span id="resStatut" class="badge"></span>
+        </div>
+        <p id="resDefinition" style="margin: 10px 0 0; font-size: 13px; font-style: italic;"></p>
+        <p id="resAntonyme" style="margin: 8px 0 0; font-size: 12px;" hidden></p>
+        <div id="resExemplesWrap" style="margin-top: 10px;" hidden>
+          <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Exemples</p>
+          <ol id="resExemples" style="margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 6px;"></ol>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+          <button id="refreshResultBtn" class="secondary-btn" type="button" style="margin-top: 0;" hidden>Actualiser</button>
+          <button id="newExplainBtn" class="secondary-btn" type="button" style="margin-top: 0;">Autre mot</button>
+        </div>
+        <input id="resFicheId" type="hidden" />
       </div>
 
       <div id="status" class="status" aria-live="polite"></div>

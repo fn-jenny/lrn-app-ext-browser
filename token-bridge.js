@@ -6,6 +6,16 @@
     return;
   }
 
+  // Contenu web sans l'extension (ou APIs indisponibles) : repli manuel, sans planter.
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    const hint = document.getElementById('bridge-ok');
+    if (hint) {
+      hint.textContent = 'Liaison auto indisponible : copiez le token ci-dessous dans la popup.';
+      hint.hidden = false;
+    }
+    return;
+  }
+
   const extra = {};
   const nameEl = document.getElementById('userName');
   const mailEl = document.getElementById('userEmail');
@@ -22,8 +32,8 @@
     }
 
     const note = document.createElement('p');
-    note.textContent = 'Extension LRN liée automatiquement. Tu peux fermer cet onglet et rouvrir le popup.';
-    note.style.cssText = 'color:#1a5f54;font-weight:700;';
+    note.textContent = 'Extension Lexikeep liée automatiquement. Tu peux fermer cet onglet et rouvrir le popup.';
+    note.style.cssText = 'color:#4338CA;font-weight:700;';
     const row = tokenInput.closest('.token-row');
     if (row) {
       row.after(note);
